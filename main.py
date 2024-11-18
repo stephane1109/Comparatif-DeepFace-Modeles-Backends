@@ -8,12 +8,11 @@
 # Licence : Ce programme est un logiciel libre : vous pouvez le redistribuer selon les termes de la Licence Publique Générale GNU v3
 ##########################################
 
-# pip install deepface streamlit pillow matplotlib altair opencv-python
+# pip install deepface streamlit pillow matplotlib altair opencv-python fer
 # pip install watchdog tensorflow
 # pip install tf-keras
 # pip install facenet-pytorch
 # pip install mediapipe
-# pip install facenet-pytorch
 # pip install ultralytics
 # pip install opencv-contrib-python
 # pip install opencv-python
@@ -30,7 +29,7 @@ import pandas as pd
 from fer import FER
 
 # Configuration de la page Streamlit
-st.set_page_config(page_title="Comparatif entre DeepFace et FER+")
+st.set_page_config(page_title="Comparatif des modèles et Backends de DeepFace")
 
 # Constantes
 BACKENDS = ['opencv', 'ssd', 'mtcnn', 'retinaface', 'mediapipe', 'yolov8', 'yunet', 'centerface']
@@ -107,7 +106,7 @@ def detect_faces_and_emotions_retinaface(image):
         st.error(f"Erreur lors de la détection avec RetinaFace: {str(e)}")
         return None, 0
 
-### fonction Deep-face - modèle VGG-face - Backend Yolov8 + Détection d'émotions
+### fonction Deep-face - modèle DeepFace - Backend Yolov8 + Détection d'émotions
 def detect_faces_and_emotions_yolov8(image):
     try:
         start_time = time.monotonic()  # Début du chronométrage
@@ -128,7 +127,7 @@ def detect_faces_and_emotions_yolov8(image):
         st.error(f"Erreur lors de la détection avec YOLOv8: {str(e)}")
         return None, 0
 
-### fonction Deep-face - modèle VGG-face - Backend MTCNN + Détection d'émotions
+### fonction Deep-face - modèle VGG-face - Backend MTCNN + Détection des émotions
 def detect_faces_and_emotions_mtcnn(image):
     try:
         start_time = time.monotonic()  # Début du chronométrage
@@ -149,6 +148,29 @@ def detect_faces_and_emotions_mtcnn(image):
         st.error(f"Erreur lors de la détection avec MTCNN: {str(e)}")
         return None, 0
 
+### fonction Deep-face - modèle Facenet512 - Backend yolov8 + Détection des émotions
+def detect_faces_and_emotions_facenet512_yolov8(image):
+    try:
+        start_time = time.monotonic()  # Début du chronométrage
+        resultats = DeepFace.analyze(img_path=image,
+                                     actions=['emotion'],  # Spécifie l'analyse émotionnelle uniquement
+                                     model_name="Facenet512",  # Utilisation de Facenet512
+                                     detector_backend="yolov8",  # Utilise Yolo-v8 comme backend
+                                     enforce_detection=False,
+                                     align=False,  # option d'alignement facial
+                                     silent=True)
+        detection_time = time.monotonic() - start_time  # Fin du chronométrage et calcul du temps
+
+        if isinstance(resultats, list):
+            resultats = resultats[0]
+
+        return resultats, detection_time  # Retourne également le temps de détection
+
+    except Exception as e:
+        st.error(f"Erreur lors de la détection avec Yolo-v8 et Facenet512: {str(e)}")
+        return None, 0
+
+
 
 def create_result_grid(images, titles, n_cols=3):
     n_rows = (len(images) + n_cols - 1) // n_cols
@@ -166,7 +188,7 @@ def create_result_grid(images, titles, n_cols=3):
     return fig
 
 def main():
-    st.title("Analyse de visages avec DeepFace et FER+")
+    st.title("Comparatif : Détéction de visages entre les modèles et Backends de DeepFace et FER+")
 
     uploaded_image = st.file_uploader("Choisissez une image", type=["jpg", "png"])
 
@@ -175,7 +197,7 @@ def main():
         img_array = np.array(img)
 
         st.markdown("""
-        ## Test 1 : Comparatif des modèles pour la détection de visages (sans analyse des émotions)
+        ### Test 1 : Comparatif des modèles pour la détection de visages (sans analyse des émotions)
         Nous allons d'abord tester les différents modèles disponibles dans DeepFace pour la détection de visages, sans effectuer d'analyse d'émotions.
         """)
         test_models(img, img_array)
@@ -194,8 +216,8 @@ def main():
         test_backends_facenet512(img, img_array)
 
         st.markdown("""
-        ### Test 4 : Analyse des émotions avec VGG-Face et backend RetinaFace
-        L'analyse des émotions est réalisée avec le modèle **VGG-Face** et le backend **RetinaFace**.
+        ### Test 4 : Analyse des émotions avec le modèle DeepFace et backend RetinaFace
+        L'analyse des émotions est réalisée avec le modèle par défaut de DeepFace et le backend **RetinaFace**.
         """)
         resultats, detection_time = detect_faces_and_emotions_retinaface(img_array)
 
@@ -203,7 +225,7 @@ def main():
             emotions = resultats.get('emotion', {})
             face = resultats['region']
             img_with_emotions = draw_emotions_and_face(img, face, emotions, detection_time)
-            st.image(img_with_emotions, caption="Résultat de l'analyse des émotions avec VGG-Face et RetinaFace")
+            st.image(img_with_emotions, caption="Résultat de l'analyse des émotions avec DeepFace et RetinaFace")
             df_results = pd.DataFrame([emotions])
             df_results['backend'] = 'retinaface'
             df_results['detection_time'] = detection_time
@@ -212,8 +234,8 @@ def main():
             st.warning("Aucun visage détecté avec RetinaFace.")
 
         st.markdown("""
-        ### Test 5 : Analyse des émotions avec VGG-Face et YOLOv8
-        L'analyse des émotions est réalisée avec le modèle **VGG-Face** et le backend **YOLOv8**.
+        ### Test 5 : Analyse des émotions avec DeepFace et YOLOv8
+        L'analyse des émotions est réalisée avec le modèle **DeepFace** et le backend **YOLOv8**.
         """)
         resultats, detection_time = detect_faces_and_emotions_yolov8(img_array)
 
@@ -221,7 +243,7 @@ def main():
             emotions = resultats.get('emotion', {})
             face = resultats['region']
             img_with_emotions = draw_emotions_and_face(img, face, emotions, detection_time)
-            st.image(img_with_emotions, caption="Résultat de l'analyse des émotions avec VGG-Face et YOLOv8")
+            st.image(img_with_emotions, caption="Résultat de l'analyse des émotions avec DeepFace et YOLOv8")
             df_results = pd.DataFrame([emotions])
             df_results['backend'] = 'yolov8'
             df_results['detection_time'] = detection_time
@@ -231,8 +253,8 @@ def main():
 
         # Test 6 : Analyse des émotions avec VGG-Face et MTCNN
         st.markdown("""
-        ### Test 6 : Analyse des émotions avec VGG-Face et MTCNN
-        L'analyse des émotions est réalisée avec le modèle **VGG-Face** et le backend **MTCNN**.
+        ### Test 6 : Analyse des émotions avec DeepFace et MTCNN
+        L'analyse des émotions est réalisée avec le modèle par defaut de **DeepFace** et le backend **MTCNN**.
         """)
         resultats, detection_time = detect_faces_and_emotions_mtcnn(img_array)
 
@@ -249,8 +271,33 @@ def main():
         else:
             st.warning("Aucun visage détecté avec MTCNN.")
 
+
+        # Test 7 - Analyse des émotions avec Facenet512 et Yolov8
         st.markdown("""
-        ### Test 7 : Analyse des émotions avec FER
+        ### Test 7 : Analyse des émotions avec Facenet512 et Yolo-v8
+            L'analyse des émotions est réalisée avec le modèle **Facenet512** et le backend **Yolo-v8**.
+            L'analyse des émotions est seulement possible avec le modèle par defaut **DeepFace**
+            """)
+        resultats, detection_time = detect_faces_and_emotions_facenet512_yolov8(img_array)
+
+        # Affichage des résultats du test 7
+        if resultats:
+            emotions = resultats.get('emotion', {})
+            face = resultats['region']
+            img_with_emotions = draw_emotions_and_face(img, face, emotions, detection_time)
+            st.image(img_with_emotions, caption="Résultat de l'analyse des émotions avec Facenet512 et Yolo-v8")
+            df_results = pd.DataFrame([emotions])
+            df_results['backend'] = 'yolov8'
+            df_results['detection_time'] = detection_time
+            st.dataframe(df_results)
+        else:
+            st.warning("Aucun visage détecté avec Yolo-v8.")
+
+
+
+        # Test 8 - FER
+        st.markdown("""
+        ### Test 8 : Analyse des émotions avec FER
         Nous allons utiliser FER+ pour l'analyse des émotions. FER utilise le backend MTCNN.
         """)
 
@@ -385,3 +432,4 @@ def analyse_with_ferplus(img_array):
 
 if __name__ == "__main__":
     main()
+
